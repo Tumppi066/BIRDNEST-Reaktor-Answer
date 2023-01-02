@@ -11,6 +11,8 @@ nestPosition = [250000, 250000] # millimeters (x,y) (250000 = 250m)
 noFlyZoneRadius = 100000 # millimeters (100000 = 100m)
 pilotStorageTime = 600 # seconds, how long the pilots are stored after their drones disappear
 
+
+
 # Main drone class
 class Drone:
     serialNumber = ""
@@ -24,10 +26,11 @@ class Drone:
     positionY = ""
     altitude = ""
     lastSeen = ""
-    closestPosition = [0,0]
+    closestPositionX = ""
+    closestPositionY = ""
 
     # Set the drone's fields during initialization
-    def __init__(self, serialNumber, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, lastSeen, closestPosition):
+    def __init__(self, serialNumber, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, lastSeen, closestPositionX, closestPositionY):
         self.serialNumber = serialNumber
         self.model = model
         self.manufacturer = manufacturer
@@ -39,7 +42,11 @@ class Drone:
         self.positionY = positionY
         self.altitude = altitude
         self.lastSeen = lastSeen
-        self.closestPosition = closestPosition
+        self.closestPositionX = closestPositionX
+        self.closestPositionY = closestPositionY
+
+
+
 
 # Main pilot class
 class Pilot:
@@ -49,16 +56,22 @@ class Pilot:
     closestDistance = 0 # millimeters
     droneSerialNumber = "" # The serial number of the drone the pilot was controlling
     lastSeen = ""
-    closestPosition = []
+    closestPositionX = ""
+    closestPositionY = ""
 
     # Set the pilot's fields during initialization
-    def __init__(self, name, phone, email, droneSerialNumber, lastSeen, closestPosition):
+    def __init__(self, name, phone, email, droneSerialNumber, lastSeen, closestPositionX, closestPositionY):
         self.name = name
         self.phone = phone
         self.email = email
         self.droneSerialNumber = droneSerialNumber
         self.lastSeen = lastSeen
-        self.closestPosition = closestPosition
+        self.closestPositionX = closestPositionX
+        self.closestPositionY = closestPositionY
+        
+
+
+
 
 def LoadPilotDatabase(filename):
     # Load the database from a file
@@ -70,12 +83,13 @@ def LoadPilotDatabase(filename):
     for line in data:
         line = line.split(",")
         try:
-            # Fields :          name,    phone,   email,   serial, lastSeen, closestPosition
-            pilots.append(Pilot(line[0], line[1], line[2], line[3], line[4], line[5]))
+            # Fields :          name,    phone,   email,   serial, lastSeen, close x, close y
+            pilots.append(Pilot(line[0], line[1], line[2], line[3], line[4], line[5], line[6]))
         except:
             return []
 
     return pilots
+
 
 def LoadDroneDatabase(filename):
     # Load the database from a file
@@ -87,19 +101,23 @@ def LoadDroneDatabase(filename):
     for line in data:
         line = line.split(",")
         try:
-            # Fields :          serial,  model,manufacturer, mac,   ipv4,    ipv6,   firmware, posX,    posY,   altitude, lastSeen
-            drones.append(Drone(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10]))
+            # Fields :          serial,  model,manufacturer, mac,   ipv4,    ipv6,   firmware, posX,    posY,   altitude, lastSeen, close x , close y
+            drones.append(Drone(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10], line[11], line[12]))
         except:
             return []
 
     return drones
 
 
+
+
+
+
 def WriteDroneDatabase(filename, database):
     # Write the database to a file
     file = open(filename, "w")
     file.truncate(0) # Clear the file
-    file.write("serialNumber,model,manufacturer,mac,ipv4,ipv6,firmware,positionX,positionY,altitude,lastSeen") # Write the header back
+    file.write("serialNumber,model,manufacturer,mac,ipv4,ipv6,firmware,positionX,positionY,altitude,lastSeen, closestPosition x, closestPosition y") # Write the header back
 
     # Convert the list of drones to a string
     databaseString = ""
@@ -110,11 +128,12 @@ def WriteDroneDatabase(filename, database):
 
     file.write("\n" + databaseString)
 
+
 def WritePilotDatabase(filename, pilotDatabase):
     # Write the database to a file
     file = open(filename, "w")
     file.truncate(0) # Clear the file
-    file.write("name,phone,email,droneSerialNumber,lastSeen") # Write the header back
+    file.write("name,phone,email,droneSerialNumber,lastSeen, closestPosition x, closestPosition y") # Write the header back
 
     # Convert the list of pilots to a string
     databaseString = ""
@@ -124,6 +143,10 @@ def WritePilotDatabase(filename, pilotDatabase):
         databaseString += "\n"
 
     file.write("\n" + databaseString)
+
+
+
+
 
 def UpdateDroneInDatabase(drone, database, timestamp):
     serial = drone[0].text
@@ -137,6 +160,7 @@ def UpdateDroneInDatabase(drone, database, timestamp):
     positionY = drone[8].text
     altitude = drone[9].text
     
+    
     found = False
     for knownDrone in database:
         if knownDrone.serialNumber == serial:
@@ -147,7 +171,7 @@ def UpdateDroneInDatabase(drone, database, timestamp):
             found = True
     
     if not found:
-        database.append(Drone(serial, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, captureTime, [1,1]))
+        database.append(Drone(serial, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, captureTime, 1, 1))
 
     # Clear drones no longer being tracked
     for drone in database:
@@ -155,6 +179,7 @@ def UpdateDroneInDatabase(drone, database, timestamp):
             database.remove(drone)
 
     return database
+
 
 def UpdatePilotInDatabase(pilotDatabase, timestamp, drone):
 
@@ -167,14 +192,18 @@ def UpdatePilotInDatabase(pilotDatabase, timestamp, drone):
     if not found:
         data = reaktorAPI.GetPilotData(drone.serialNumber) # Get new data from the API
         data = json.loads(data) # Convert the data to json for easy manipulation
-        pilotDatabase.append(Pilot(data["firstName"] + "" + data["lastName"], data["phoneNumber"], data["email"], drone.serialNumber, timestamp, drone.closestPosition))
+        pilotDatabase.append(Pilot(data["firstName"] + " " + data["lastName"], data["phoneNumber"], data["email"], drone.serialNumber, timestamp, drone.closestPositionX, drone.closestPositionY))
 
     # Clear pilots no longer being tracked and exceeding the storage time
     for pilot in pilotDatabase:
-        if pilot.lastSeen > timestamp - pilotStorageTime:
+        if round(float(pilot.lastSeen)) < round(float(timestamp)) - int(pilotStorageTime):
             pilotDatabase.remove(pilot)
 
     return pilotDatabase
+
+
+
+
 
 def CalculateDistanceToNest(position):
     # Calculate the distance to the nest
@@ -184,6 +213,10 @@ def CalculateDistanceToNest(position):
     y1 = float(position[1])
     y2 = nestPosition[1]
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+
+
+
 
 while True:
     startTime = time.time() # This is used to later get an accurate 2s update rate
@@ -212,11 +245,15 @@ while True:
     """
 
     os.system("cls") # Clear the console
+    print("\033[92m" + "Reaktor Drone Tracker" + "\033[0m")
+    print("\033[92m" + "Backend running..." + "\033[0m")
+
     pilotDatabase = LoadPilotDatabase("Database/pilots.csv") # Load the pilot database
     for drone in database:
         distance = CalculateDistanceToNest([drone.positionX, drone.positionY])
-        if distance < CalculateDistanceToNest(drone.closestPosition):
-            drone.closestPosition = [drone.positionX, drone.positionY]
+        if distance < CalculateDistanceToNest([drone.closestPositionX, drone.closestPositionY]):
+            drone.closestPositionX = drone.positionX
+            drone.closestPositionY = drone.positionY
 
         if distance < noFlyZoneRadius:
             print(drone.serialNumber + " : " + str(round(distance/1000,2)) + "m - violation!")
@@ -225,9 +262,12 @@ while True:
         else:
             print(drone.serialNumber + " : " + str(round(distance/1000,2)) + "m")
 
+    WriteDroneDatabase("Database/drones.csv", database) # Then write the changes
     WritePilotDatabase("Database/pilots.csv", pilotDatabase) # Then write the changes
     
     
     # Match the API update rate
     print("Compute time: " + str(round(time.time() - startTime, 3)) + "s")
-    time.sleep(apiUpdateRate - (time.time() - startTime))
+    while time.time() - startTime < apiUpdateRate:
+        print("\033[93m" + "Waiting " + str(round(apiUpdateRate - (time.time() - startTime), 1)) + "s" + "\033[0m", end="\r")
+    #time.sleep(apiUpdateRate - (time.time() - startTime))
