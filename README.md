@@ -38,7 +38,7 @@ For local usage just start the backend with
 > uvicorn api:app --port 8001 
 
 in the /Backend folder.
-
+Then open the index.html file in your browser.
 
 If the intended use case is to publish the web app, it can be done with nginx, I have included it and it can be started by running nginx.exe
 # Screenshot
