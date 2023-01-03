@@ -47,6 +47,6 @@ For local usage just start the backend with
 in the /Backend folder.
 Then open the index.html file in your browser.
 
-If the intended use case is to publish the web app, it can be done with nginx, I have included it and it can be started by running nginx.exe
+If the intended use case is to publish the web app, that can be done with nginx, I have included it and it can be started by running nginx.exe. Be sure to check the readme.md in /nginx for more information.
 # Screenshot
 ![alt text](screenshot.jpg)
