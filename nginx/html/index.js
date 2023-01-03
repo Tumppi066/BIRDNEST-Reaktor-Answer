@@ -136,6 +136,8 @@ function updateInformation(){
 
 
 window.onload = function() {
+    updatePilots()
+    updateInformation()
     // Call the main functions every 2 seconds
     setInterval(updatePilots, 2000);
     setInterval(updateInformation, 2000);

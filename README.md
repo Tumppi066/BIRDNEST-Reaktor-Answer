@@ -20,7 +20,14 @@ This backend consists of three files.
 * reaktorAPI.py -> handles interacting with the reaktor api
 * database.py -> interacts with the database to store, remove, and edit information. It does all the calculations for the web app, that then accesses these database files.
 
-The database does not save drone information and it is not used in this example. It could be quite easily used to show live positions of drones. This is why it is included in the api as /drones.
+The database uses two files in the .csv format, these are:
+    
+    drones.csv -> 
+    [serialNumber,model,manufacturer,mac,ipv4,ipv6,firmware,positionX,positionY,altitude,lastSeen, closestPosition x, closestPosition y]
+    pilots.csv -> 
+    [name,phone,email,droneSerialNumber,lastViolation,lastSeen,closestPosition x,closestPosition y]
+
+The database does not persist drone information and I do not use the live feed in this project. It could however quite easily be used to show live positions of drones as future development. This is why it is included in the api as /drones.
 
 The web app consists of a basic html, css and js setup with no additional used javascript frameworks. 
 # Dependencies
