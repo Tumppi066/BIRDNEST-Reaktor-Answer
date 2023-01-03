@@ -1,19 +1,52 @@
 body{
     background-color: #202020;
     font-family: 'Roboto', sans-serif;
-    font-size: 16px;
+    font-size: 20px;
     color: rgb(196, 196, 196);
-    margin: 0;
+    margin: 1;
     padding: 0;
 }
 
 table{
     margin-top: 2vh;
     text-align: center;
+    border-collapse: collapse;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
-th, td {
-    border: 1px solid;
+#headerTR {
+    background-color: #3d3d3d;
+    color: #ffffff;
+    text-align: left;
+}
+
+th {
+    text-align: left;
+    border-bottom: 1px solid;
+    padding: 10px 20px;
+}
+
+td {
+    text-align: left;
+    border-bottom: 1px solid;
+    padding: 10px 12px;
+}
+
+@keyframes changeColor{
+    from {background-color: #202020}
+    to {background-color: #292929}
+}
+
+tr:hover { 
+    background: #292929; 
+    animation-name: changeColor;
+    animation-duration: 0.1s;
+}
+
+tr:active { 
+    background: #292929; 
+    animation-name: changeColor;
+    animation-duration: 0.1s;
 }
 
 #Title{

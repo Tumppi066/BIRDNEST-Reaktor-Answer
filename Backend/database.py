@@ -55,16 +55,18 @@ class Pilot:
     email = ""
     closestDistance = 0 # millimeters
     droneSerialNumber = "" # The serial number of the drone the pilot was controlling
+    lastViolation = ""
     lastSeen = ""
     closestPositionX = ""
     closestPositionY = ""
 
     # Set the pilot's fields during initialization
-    def __init__(self, name, phone, email, droneSerialNumber, lastSeen, closestPositionX, closestPositionY):
+    def __init__(self, name, phone, email, droneSerialNumber, lastViolation, lastSeen, closestPositionX, closestPositionY):
         self.name = name
         self.phone = phone
         self.email = email
         self.droneSerialNumber = droneSerialNumber
+        self.lastViolation = lastViolation
         self.lastSeen = lastSeen
         self.closestPositionX = closestPositionX
         self.closestPositionY = closestPositionY
@@ -75,18 +77,18 @@ class Pilot:
 
 def LoadPilotDatabase(filename):
     # Load the database from a file
-    data = open(filename, "r").readlines() # A for loop is faster for reading, but this is more readable
+    data = open(filename, "r").readlines() # A for loop is technically faster for reading, but this is more readable
     data.pop(0) # Remove the first line (column names)
 
     pilots = []
 
-    for line in data:
+    for line in data: # (for pilot in database)
         line = line.split(",")
         try:
-            # Fields :          name,    phone,   email,   serial, lastSeen, close x, close y
-            pilots.append(Pilot(line[0], line[1], line[2], line[3], line[4], line[5], line[6]))
+            # Fields :          name,    phone,   email,   serial,lastVio...,lastSeen,close x, close y
+            pilots.append(Pilot(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7]))
         except:
-            return []
+            pass
 
     return pilots
 
@@ -98,13 +100,13 @@ def LoadDroneDatabase(filename):
 
     drones = []
 
-    for line in data:
+    for line in data: # (for drone in database)
         line = line.split(",")
         try:
             # Fields :          serial,  model,manufacturer, mac,   ipv4,    ipv6,   firmware, posX,    posY,   altitude, lastSeen, close x , close y
             drones.append(Drone(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10], line[11], line[12]))
         except:
-            return []
+            pass
 
     return drones
 
@@ -113,7 +115,7 @@ def LoadDroneDatabase(filename):
 
 
 
-def WriteDroneDatabase(filename, database):
+def WriteDroneDatabase(filename, database): # database means an array of Drone objects
     # Write the database to a file
     file = open(filename, "w")
     file.truncate(0) # Clear the file
@@ -123,23 +125,23 @@ def WriteDroneDatabase(filename, database):
     databaseString = ""
     for drone in database:
         for field in drone.__dict__.values(): # Loop through the fields of the drone
-            databaseString += str(field) + ","
+            databaseString += str(field) + "," # And seperate them with commas
         databaseString += "\n"
 
     file.write("\n" + databaseString)
 
 
-def WritePilotDatabase(filename, pilotDatabase):
+def WritePilotDatabase(filename, pilotDatabase): # pilotDatabase means an array of Pilot objects
     # Write the database to a file
     file = open(filename, "w")
     file.truncate(0) # Clear the file
-    file.write("name,phone,email,droneSerialNumber,lastSeen, closestPosition x, closestPosition y") # Write the header back
+    file.write("name,phone,email,droneSerialNumber,lastViolation,lastSeen,closestPosition x,closestPosition y") # Write the header back
 
     # Convert the list of pilots to a string
     databaseString = ""
     for pilot in pilotDatabase:
         for field in pilot.__dict__.values(): # Loop through the fields of the pilot
-            databaseString += str(field) + ","
+            databaseString += str(field) + "," # And seperate them with commas
         databaseString += "\n"
 
     file.write("\n" + databaseString)
@@ -147,8 +149,14 @@ def WritePilotDatabase(filename, pilotDatabase):
 
 
 
-
-def UpdateDroneInDatabase(drone, database, timestamp):
+# Will update a drones position in the database
+# If the drone is not in the database, it will be added
+#
+# drone = an xml element containing the drone's data
+# droneDatabase = an array of Drone objects
+# timestamp = the current time (unix seconds)
+def UpdateDroneInDatabase(drone, droneDatabase, timestamp): 
+    # Parse the xml
     serial = drone[0].text
     model = drone[1].text
     manufacturer = drone[2].text
@@ -162,42 +170,59 @@ def UpdateDroneInDatabase(drone, database, timestamp):
     
     
     found = False
-    for knownDrone in database:
-        if knownDrone.serialNumber == serial:
+    for knownDrone in droneDatabase: # Loop through the drones in the database and check
+        if knownDrone.serialNumber.upper() == serial.upper(): # if the drone is already in the database
+            # If it is, then we update the fields
             knownDrone.positionX = positionX
             knownDrone.positionY = positionY
             knownDrone.altitude = altitude
             knownDrone.lastSeen = timestamp
             found = True
-    
+
+
     if not found:
-        database.append(Drone(serial, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, captureTime, 1, 1))
+        # If the drone is not in the database, then we add it
+        droneDatabase.append(Drone(serial, model, manufacturer, mac, ipv4, ipv6, firmware, positionX, positionY, altitude, timestamp, 1, 1)) # 1,1, is a placeholder for the closest position
 
-    # Clear drones no longer being tracked
-    for drone in database:
-        if drone.lastSeen != timestamp:
-            database.remove(drone)
-
-    return database
+    return droneDatabase
 
 
-def UpdatePilotInDatabase(pilotDatabase, timestamp, drone):
+# Will update a pilot's position in the database
+# If the pilot is not in the database, it will be added
+# 
+# pilotDatabase = an array of Pilot objects
+# timestamp = the current time (unix seconds)
+# drone = a Drone object
+# distance = the current distance of the drone to the nest
+def UpdatePilotInDatabase(pilotDatabase, timestamp, drone, distance):
 
     found = False
-    for knownPilot in pilotDatabase:
-        if knownPilot.droneSerialNumber == drone.serialNumber:
+    for knownPilot in pilotDatabase: # Loop through the pilots in the database and check
+        if knownPilot.droneSerialNumber == drone.serialNumber: # if the pilot is already in the database
+            # If it is, then we update the fields
             knownPilot.lastSeen = timestamp
+            if (distance < noFlyZoneRadius):
+                knownPilot.lastViolation = timestamp
+            knownPilot.closestPositionX = drone.closestPositionX
+            knownPilot.closestPositionY = drone.closestPositionY
             found = True
     
     if not found:
+        # If the pilot is not in the database, then we add it
         data = reaktorAPI.GetPilotData(drone.serialNumber) # Get new data from the API
-        data = json.loads(data) # Convert the data to json for easy manipulation
-        pilotDatabase.append(Pilot(data["firstName"] + " " + data["lastName"], data["phoneNumber"], data["email"], drone.serialNumber, timestamp, drone.closestPositionX, drone.closestPositionY))
+        
+        try: data = json.loads(data) # Convert the data to json for easy manipulation
+        except:
+            data = { # The pilot is unknown
+                "firstName": "Unknown",
+                "lastName": "Unknown",
+                "phoneNumber": "Unknown",
+                "email": "Unknown"
+            }
+        
+        # Add the pilot to the database
+        pilotDatabase.append(Pilot(data["firstName"] + " " + data["lastName"], data["phoneNumber"], data["email"], drone.serialNumber, timestamp, timestamp, drone.closestPositionX, drone.closestPositionY))
 
-    # Clear pilots no longer being tracked and exceeding the storage time
-    for pilot in pilotDatabase:
-        if round(float(pilot.lastSeen)) < round(float(timestamp)) - int(pilotStorageTime):
-            pilotDatabase.remove(pilot)
 
     return pilotDatabase
 
@@ -226,7 +251,7 @@ while True:
     Update the drone database
     """
 
-    data = reaktorAPI.GetNewData() # Get new data from the API
+    data = reaktorAPI.GetDroneData() # Get new data from the API
     database = LoadDroneDatabase("Database/drones.csv") # Load the drone database
 
     data = ET.fromstring(data) # Convert the data to an XML tree for easy manipulation
@@ -237,8 +262,13 @@ while True:
     for drone in data[1]: # Update all the drones in the database
         database = UpdateDroneInDatabase(drone, database, captureTime)
 
-    WriteDroneDatabase("Database/drones.csv", database) # Then write the changes
+    # Clear drones no longer being tracked
+    for drone in database:
+        if drone.lastSeen != captureTime:
+            database.remove(drone)
 
+    WriteDroneDatabase("Database/drones.csv", database) # Then write the changes
+    LoadDroneDatabase("Database/drones.csv") # And reload the database for no fly zone checking
 
     """
     Check for drones violating the no-fly zone
@@ -249,21 +279,34 @@ while True:
     print("\033[92m" + "Backend running..." + "\033[0m")
 
     pilotDatabase = LoadPilotDatabase("Database/pilots.csv") # Load the pilot database
-    for drone in database:
+    
+    for drone in database: # Loop through all the drones in the database
+        
+        # Update their closest positions
         distance = CalculateDistanceToNest([drone.positionX, drone.positionY])
-        if distance < CalculateDistanceToNest([drone.closestPositionX, drone.closestPositionY]):
+        closestDistance = CalculateDistanceToNest([drone.closestPositionX, drone.closestPositionY])
+        if (distance < closestDistance):
             drone.closestPositionX = drone.positionX
             drone.closestPositionY = drone.positionY
+            closestDistance = distance
 
-        if distance < noFlyZoneRadius:
-            print(drone.serialNumber + " : " + str(round(distance/1000,2)) + "m - violation!")
-            pilotDatabase = UpdatePilotInDatabase(pilotDatabase, captureTime, drone) # Update the pilot database
+        if closestDistance < noFlyZoneRadius: # and check if they have been within the no-fly zone
+            # If they have, then we update/add the pilot to the database
+            print(drone.serialNumber + " : " + str(round(distance/1000,2)) + "m - has violated!")
+            pilotDatabase = UpdatePilotInDatabase(pilotDatabase, captureTime, drone, distance) # Update the pilot database
 
         else:
+            # If they are not, then we just print the distance
             print(drone.serialNumber + " : " + str(round(distance/1000,2)) + "m")
 
-    WriteDroneDatabase("Database/drones.csv", database) # Then write the changes
-    WritePilotDatabase("Database/pilots.csv", pilotDatabase) # Then write the changes
+    # Clear pilots no longer being tracked and exceeding the storage time
+    for pilot in pilotDatabase:
+        if round(float(pilot.lastSeen)) < round(float(captureTime)) - int(pilotStorageTime):
+            pilotDatabase.remove(pilot)
+
+    # Then write the changes
+    WriteDroneDatabase("Database/drones.csv", database) 
+    WritePilotDatabase("Database/pilots.csv", pilotDatabase)
     
     
     # Match the API update rate
