@@ -7,11 +7,14 @@ body{
     padding: 0;
 }
 
-table{
+#table{
+    background-color: red;
     margin-top: 2vh;
     text-align: center;
     border-collapse: collapse;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    width:75%; 
+    translate: 12.5vw 0%;
 }
 
 #headerTR {

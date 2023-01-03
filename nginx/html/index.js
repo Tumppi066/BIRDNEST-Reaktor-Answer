@@ -1,6 +1,6 @@
-let dronesURL = "http://127.0.0.1:8001/drones";
-let pilotsURL = "http://127.0.0.1:8001/pilots";
-let runtimeURL = "http://127.0.0.1:8001/runtime";
+let dronesURL = "https://birdnest.tumppi066.xyz/api/drones";
+let pilotsURL = "https://birdnest.tumppi066.xyz/api/pilots";
+let runtimeURL = "https://birdnest.tumppi066.xyz/api/runtime";
 let violationCount = 0;
 
 
