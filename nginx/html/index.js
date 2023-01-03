@@ -88,8 +88,8 @@ function updatePilotTableElement(pilot, number, table){
         // If it does, we update the information
         pilot = pilot.split(",");
         distance = (Math.floor(calculateDistance(pilot[6], pilot[7])/10))/100
-        element.children[0].children[0].innerHTML = new Date(Math.floor(pilot[4]*1000)).toLocaleString(); // Time In NDZ
-        element.children[0].children[1].innerHTML = new Date(Math.floor(pilot[5]*1000)).toLocaleString(); // Last Seen
+        element.children[0].children[0].innerHTML = new Date(Math.floor(pilot[4]*1000)).toLocaleString() + " UTC"; // Time In NDZ
+        element.children[0].children[1].innerHTML = new Date(Math.floor(pilot[5]*1000)).toLocaleString() + " UTC"; // Last Seen
         element.children[0].children[2].innerHTML = distance + " meters";                                 // Distance
     }
 }
@@ -101,6 +101,25 @@ function updatePilots(){
     // Update the violation count
     violationCount = data.length - 1; 
 
+    // Remove the first name if it has gone over the time limit
+    let element = table.children[1]; // Get the first table element
+    let name = element.children[0].children[3].innerHTML; // And then the name of the first pilot in the table
+    
+    let dataName = data[1].split(",")[0]; // Get the name of the first pilot from the data
+    if(name != dataName){
+        element.remove(); // If the name is different, we remove the first element
+    }
+
+    // Remove the second to last name if it is the same as the last one (this is to prevent duplicates)
+    element = table.children[data.length - 2]; // Get the second to last table element
+    name = element.children[0].children[3].innerHTML; // And then the name of the second to last pilot in the table
+
+    lastName = data[data.length - 1].split(",")[0]; // Get the name of the last pilot from the data
+    if(name == lastName){
+        element.remove(); // If the name is the same, we remove the second to last element
+    }
+
+    // Update the table
 
     let table = document.getElementById("table");
     for(i = 1; i < data.length; i++){
@@ -108,13 +127,6 @@ function updatePilots(){
         updatePilotTableElement(data[i], i, table);
     }
 
-    let element = table.children[1]; // Get the first table element
-    let name = element.children[0].children[3].innerHTML; // And then the name of the first pilot in the table
-
-    let dataName = data[1].split(",")[0]; // Get the name of the first pilot from the data
-    if(name != dataName){
-        element.remove(); // If the name is different, we remove the first element
-    }
         
 }
 
